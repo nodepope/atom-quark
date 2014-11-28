@@ -1,0 +1,20 @@
+# See https://atom.io/docs/latest/creating-a-package#menus for more details
+'context-menu':
+  '.overlayer':
+    'Enable quark': 'quark:toggle'
+
+  '.quark li':
+    'Mark as complete': 'quark:complete_task'
+    'Archive': 'quark:archive'
+
+'menu': [
+  {
+    'label': 'Packages'
+    'submenu': [
+      'label': 'quark'
+      'submenu': [
+        { 'label': 'Toggle', 'command': 'quark:toggle' }
+      ]
+    ]
+  }
+]

@@ -1,0 +1,117 @@
+// The ui-variables file is provided by base themes provided by Atom.
+//
+// See https://github.com/atom/atom-dark-ui/blob/master/stylesheets/ui-variables.less
+// for a full listing of what's available.
+@import "ui-mixins";
+@import "ui-variables";
+@import "buttons";
+@import "text";
+
+.quark {
+  width: 300px;
+  overflow: auto;
+  padding-top: 34px;
+
+  background-color: tree-view-background-color;
+  color: @text-color;
+  border: solid 1px fadeout(@inset-panel-border-color, 30%);
+
+  & > * {
+    font-size: 1.2em;
+    padding: @component-padding;
+  }
+
+  .titleBar {
+    background-color: @panel-heading-background-color;
+    border-bottom: solid 1px;
+    border-color: @panel-heading-border-color;
+    margin: 0;
+    position: fixed;
+    top: 0;
+    width: 100%;
+
+    h1 {
+      font-size: 1em;
+      margin: 0;
+    }
+
+    .projectForm {
+      margin-top: .5em;
+
+      input {
+        padding: .55em 1em;
+        width: 230px;
+      }
+
+      .newProject {
+        .btn();
+        .btn.btn-success();
+        border: 0 none;
+        padding: @component-padding;
+        cursor: default;
+      }
+    }
+  }
+
+  ol, ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  .projects {
+    li {
+      cursor: default;
+      &:hover { background-color: @background-color-highlight; }
+    }
+
+    > li {
+      padding: @component-padding;
+      h2, .toggle { .clearfix(); }
+
+      &.archive {
+        display: none;
+
+        h2 { .text-subtle(); }
+      }
+
+      &.complete {
+        display: none;
+
+        h2 {
+          .text-subtle();
+          text-decoration: line-through;
+        }
+      }
+
+      .toggle{
+        .btn();
+        //visibility: hidden;
+        float: left;
+        margin: .5em 1em .5em 0;
+        text-indent: -99999px;
+        width: 20px;
+        height: 20px;
+        vertical-align: middle;
+        border-radius: 10px;
+        display: block;
+      }
+      &.active .toggle { .btn.btn-primary(); }
+
+      .item {
+        .clearfix();
+
+        h2 {
+          margin: .5em 0;
+          font-size: 1em;
+        }
+
+
+        .timers {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+.clearfix { overflow: hidden; }
