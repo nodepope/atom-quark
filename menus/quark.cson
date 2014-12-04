@@ -3,7 +3,7 @@
   '.overlayer':
     'Enable quark': 'quark:toggle'
 
-  '.quark li':
+  '.quark h2':
     'Mark as complete': 'quark:complete_task'
     'Archive': 'quark:archive'
 

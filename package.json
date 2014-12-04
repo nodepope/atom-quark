@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "underscore-plus": "1.x",
-    "moment": "*"
+    "moment": "*",
+    "jquery-ui": "*",
+    "node-uuid": "*"
   }
 }

@@ -2,13 +2,53 @@
 {$, ScrollView} = require 'atom'
 _ = require 'underscore-plus'
 moment = require 'moment'
+$ = require 'jquery'
+require 'jquery-ui'
 fs = require 'fs'
+uuid = require('node-uuid')
+
+taskFile = '/home/pope/tasks.json'
+
+tick = (project) ->
+  active = $('.active', '.quark ol')
+  console.log(active, active.length, $('.quark ol'))
+
+  if active.length
+    updateTimer($('time', active), project)
+
+    setTimeout(->tick project, 300)
+
+updateTimer = (element, project) ->
+  lastTimer = project.timers[project.timers.length-1]
+  duration = moment().diff(lastTimer.start) + moment.duration(project.time)
+
+  element.text getTimeString duration
+
+getTimeString = (duration) ->
+  time = moment.duration(duration)
+
+  pad = '00'
+  hours = (pad + time.get('hours')).slice(-pad.length)
+  minutes = (pad + time.get('minutes')).slice(-pad.length)
+  seconds = (pad + time.get('seconds')).slice(-pad.length)
+
+  return hours + ':' + minutes + ':' + seconds;
+
+write = (projects) ->
+  fileContent = JSON.stringify(projects, null, 2)
+
+  fs.writeFile taskFile, fileContent, (err) ->
+    if err
+      console.log "Error!", err
+    else
+      console.log "Tasks file updated!"
 
 module.exports =
 class QuarkView extends ScrollView
   @projects:null
 
   @content: ->
+
     @div class: 'quark', =>
       @div outlet: 'titleBar', class: 'titleBar', =>
         @h1 'Tasks'
@@ -19,16 +59,22 @@ class QuarkView extends ScrollView
     if persist
       @projects.push(project)
 
-      fileContent = JSON.stringify(@projects, null, 2)
-      fs.writeFile '/home/pope/tasks.json', fileContent, (err) ->
-        if err
-          console.log "Error!", err
-        else
-          console.log "Tasks file updated!"
+      write @projects
 
     button = $('<span/>').addClass('toggle').text(project.state)
-    element = $('<li/>').attr('draggable', true).append(button)
-      .append($('<div/>').addClass('item').append("<h2>#{project.name}</h2>"))
+
+    time = '<time></time>'
+    if project.time
+      time = "<time>#{project.time}</time>"
+
+    element = $('<li/>')
+      .attr('quark-task', project.id)
+      .append(button)
+      .append(
+        $('<div/>')
+          .addClass('item')
+          .append("#{time}<h2>#{project.name}</h2>")
+      )
 
     if project.status
       element.addClass(project.status)
@@ -40,8 +86,12 @@ class QuarkView extends ScrollView
 
   initialize: (state) ->
     console.log('init view')
-    data = fs.readFileSync '/home/pope/tasks.json'
+    data = fs.readFileSync taskFile
     projects = JSON.parse(data)
+
+    # ensure there is an id on each task
+    for project in projects
+      project.id = uuid() unless project.id
 
     @projects = projects
     $list = @list
@@ -85,12 +135,7 @@ class QuarkView extends ScrollView
 
         timer.files = _.sortBy _.union timer.files, e.path
 
-        fileContent = JSON.stringify(projects, null, 2)
-        fs.writeFile '/home/pope/tasks.json', fileContent, (err) ->
-          if err
-            console.log "Error!", err
-          else
-            console.log "Tasks file updated!"
+        write projects
 
     @titleBar.on 'click', (e) ->
       projectForm = $(this).find('.projectForm')
@@ -134,7 +179,6 @@ class QuarkView extends ScrollView
       atom.workspace.open $(this).attr('path')
 
     @list.on 'click', '.toggle', (e, refresh) ->
-      console.log refresh
       parentElement = $(this).closest('li')
 
       $('li.active', $list).not(parentElement).each ->
@@ -148,9 +192,9 @@ class QuarkView extends ScrollView
       $('.timers', $list).remove()
 
       if project.state != 'active'
-        $that.startTimer(project)
-
         $(parentElement).addClass('active')
+
+        $that.startTimer(project)
 
         timersElement = $('<ul/>').addClass('timers')
 
@@ -160,15 +204,25 @@ class QuarkView extends ScrollView
           startTimerElement = $('<time/>').attr('datetime', timer.start)
           timerWrapperElement.append(startTimerElement)
 
-          if !timer.end
-            startTimerElement.text(moment().fromNow())
-          else
+          if timer.end
             startTimerElement.text(moment(timer.start)
               .format('YYYY-MM-DD HH:mm:ss'))
             endTimerElement = $('<time/>').attr('datetime', timer.end)
               .text('-' + moment(timer.end).format('HH:mm:ss'))
 
             timerWrapperElement.append(endTimerElement)
+
+            duration = moment(timer.end).diff(timer.start)
+
+            if duration
+              timerWrapperElement.append($('<div/>')
+                .addClass('time-spent')
+                .text(
+                  moment.duration(
+                    duration
+                  ).humanize()
+                )
+              )
 
           if timer.files
             filesElement = $('<ol/>').addClass('files')
@@ -188,15 +242,22 @@ class QuarkView extends ScrollView
           timersElement.show('slow')
       else
         $that.stopTimer(project)
-        $('.timers', $list).append('time...')
         $(parentElement).removeClass('active')
 
-      fileContent = JSON.stringify(projects, null, 2)
-      fs.writeFile '/home/pope/tasks.json', fileContent, (err) ->
-        if err
-          console.log "Error!", err
-        else
-          console.log "Tasks file updated! "
+        for project in projects
+          duration = 0
+
+          if project.timers
+            for timer in project.timers
+              if timer.end
+                duration += moment(timer.end).diff(timer.start)
+
+            if duration
+              project.time = getTimeString duration
+
+      write projects
+
+    write projects
 
     @list.find('.active .toggle').trigger('click', true)
 
@@ -217,12 +278,7 @@ class QuarkView extends ScrollView
     project = projects[element.index()]
     project.status = "archive"
 
-    fileContent = JSON.stringify(projects, null, 2)
-    fs.writeFile '/home/pope/tasks.json', fileContent, (err) ->
-      if err
-        console.log "Error!", err
-      else
-        console.log "Tasks file updated! "
+    write projects
 
   complete_task: (event, context) ->
     element = $(event.target).closest('li')
@@ -232,12 +288,7 @@ class QuarkView extends ScrollView
     project = projects[element.index()]
     project.status = "complete"
 
-    fileContent = JSON.stringify(projects, null, 2)
-    fs.writeFile '/home/pope/tasks.json', fileContent, (err) ->
-      if err
-        console.log "Error!", err
-      else
-        console.log "Tasks file updated! "
+    write projects
 
   startTimer: (project) ->
     project.state = 'active'
@@ -257,6 +308,8 @@ class QuarkView extends ScrollView
       }
     else
       console.log 'Error! Timers are out of sync with state!', project
+
+    tick(project)
 
   stopTimer: (project) ->
     project.state = 'paused'
@@ -279,11 +332,25 @@ class QuarkView extends ScrollView
     @detach()
 
   toggle: ->
+    projects = @projects
+    $that = this
+
     if @hasParent()
       @detach()
     else
       @list.empty()
+      $(@list).sortable
+        update: (e, ui) ->
+          sorted = []
 
-      @addProject project for project in @projects
+          for item in $(this).sortable('toArray', attribute: 'quark-task')
+            next = _.findWhere projects, id: item
+
+            sorted.push next
+
+          $that.projects = sorted
+          write $that.projects
+
+      @addProject project for project in projects
 
       atom.workspaceView.appendToRight(this)
