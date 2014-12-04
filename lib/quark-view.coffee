@@ -7,7 +7,7 @@ require 'jquery-ui'
 fs = require 'fs'
 uuid = require('node-uuid')
 
-taskFile = '/home/pope/tasks.json'
+taskFile = atom.project.path + '/.quark'
 
 tick = (project) ->
   active = $('.active', '.quark ol')
